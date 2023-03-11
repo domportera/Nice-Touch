@@ -81,13 +81,11 @@ namespace NiceTouch
         List<InterpreterWithTouches> DistributeMultiTouch<T>(ref T gesture) where T : IMultiFingerGesture // todo: `in` keyword in c# 7
         {
             List<InterpreterWithTouches> usersWithTouches = new List<InterpreterWithTouches>(); // todo: cache this list
-            foreach (KeyValuePair<IGestureInterpreter, HashSet<Touch>> interpreterWithTouches in
-                     _touchesClaimedByInterpreters)
+            List<Touch> touchesTheyOwn = new List<Touch>();
+            foreach (KeyValuePair<IGestureInterpreter, HashSet<Touch>> interpreterWithTouches in _touchesClaimedByInterpreters)
             {
                 IGestureInterpreter interpreter = interpreterWithTouches.Key;
                 HashSet<Touch> touches = interpreterWithTouches.Value;
-
-                List<Touch> touchesTheyOwn = new List<Touch>();
 
                 foreach (Touch touch in gesture.Touches)
                 {
@@ -95,7 +93,11 @@ namespace NiceTouch
                         touchesTheyOwn.Add(touch);
                 }
 
+                if (touchesTheyOwn.Count == 0)
+                    continue;
+
                 usersWithTouches.Add(new InterpreterWithTouches(interpreter, touchesTheyOwn));
+                touchesTheyOwn.Clear();
             }
 
             return usersWithTouches;

@@ -270,19 +270,19 @@ namespace NiceTouch.GestureGeneration
 
             if (gesture is null)
             {
-                GestureCalculator nextCalculator;
                 int calculatorsAvailable = _recycledGestureCalculators.Count;
                 if (calculatorsAvailable > 0)
                 {
-                    nextCalculator = _recycledGestureCalculators.Last();
+                    gesture = _recycledGestureCalculators.Last();
+                    gesture.AddTouch(touch);
                     _recycledGestureCalculators.RemoveAt(calculatorsAvailable - 1);
                 }
                 else
                 {
-                    nextCalculator = CreateNewGestureCalculator(touch);
+                    gesture = CreateNewGestureCalculator(touch);
                 }
                 
-                _gestureCalculators.Add(nextCalculator);
+                _gestureCalculators.Add(gesture);
             }
             else
             {

@@ -2,9 +2,11 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Godot;
 using GodotExtensions;
 using static NiceTouch.UnitConstants;
+using Environment = System.Environment;
 
 namespace NiceTouch
 {
@@ -93,20 +95,15 @@ namespace NiceTouch
         }
 
         // todo: speeds will not be updated as this Update function currently wont be called when touch is still
-        internal void Update(double time, Vector2 position, Vector2 relative)
+        internal void Update(double time, Vector2 position)
         {
-#if ERROR_CHECK_NICE_TOUCH
-            if(position != Current.Position + relative)
-                GDLogger.Error(this, $"Touch {Index.ToString()} missed an update!");
-#endif
-
-            bool hasHistory = _history.Count > 0;
-            TouchPositionData oldest = hasHistory ? _history.Peek() : Current;
-            var positionData = new TouchPositionData(time, LastUpdateTime, position, relative, _dpi);
+            var positionData = new TouchPositionData(time, LastUpdateTime, position, position - Current.Position, _dpi);
             
             TotalDistanceTraveled += positionData.DistanceTraveled;
             Current = positionData;
             
+            bool hasHistory = _history.Count > 0;
+            TouchPositionData oldest = hasHistory ? _history.Peek() : Current;
             _history.Enqueue(positionData);
 
             double timeElapsed = time - oldest.Time;

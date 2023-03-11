@@ -62,7 +62,7 @@ namespace NiceTouch
                 Touch touch = touchEntry.Value;
                 if (time - touch.LastUpdateTime > delta)
                 {
-                    touch.Update(time, touch.Position, Vector2.Zero);
+                    touch.Update(time, touch.Position);
                 }
             }
         }
@@ -72,7 +72,7 @@ namespace NiceTouch
             if (_acceptTouch)
                 AcceptEvent();
 
-            DragTouch(drag.Index, Time, drag.Position, drag.Relative);
+            DragTouch(drag.Index, Time, drag.Position);
         }
 
         void HandleTouchEvent(InputEventScreenTouch touch)
@@ -96,8 +96,8 @@ namespace NiceTouch
             double time = Time;
             foreach (int mouseButton in _mouseButtonsPressed)
             {
-                int buttonIndex = MouseToTouchIndex(mouseButton);
-                DragTouch(buttonIndex, time, mouse.GlobalPosition, mouse.Relative);
+                int index = MouseToTouchIndex(mouseButton);
+                DragTouch(index, time, mouse.Position);
             }
         }
 
@@ -108,13 +108,13 @@ namespace NiceTouch
             int buttonIndex = MouseToTouchIndex(mouse.ButtonIndex);
             if (mouse.Pressed)
             {
-                AddTouch(buttonIndex, Time, mouse.GlobalPosition);
                 _mouseButtonsPressed.Add(mouse.ButtonIndex);
+                AddTouch(buttonIndex, Time, mouse.Position);
             }
             else
             {
-                RemoveTouch(buttonIndex, Time, mouse.GlobalPosition);
                 _mouseButtonsPressed.Remove(mouse.ButtonIndex);
+                RemoveTouch(buttonIndex, Time, mouse.Position);
             }
         }
 
@@ -137,7 +137,7 @@ namespace NiceTouch
             int touchIndex = _incrementingTouchIndex++;
             _touchIndices[index] = touchIndex;
             Touch touch = new Touch(time, touchIndex, position);
-            _touches[index] = touch;
+            _touches[touchIndex] = touch;
             TouchAdded.Invoke(this, touch);
         }
 
@@ -147,6 +147,7 @@ namespace NiceTouch
             _touchIndices.Remove(index);
             
             Touch removedTouch = _touches[touchIndex];
+            removedTouch.Update(time, position);
             _touches.Remove(touchIndex);
             TouchRemoved.Invoke(this, removedTouch);
 
@@ -173,10 +174,10 @@ namespace NiceTouch
             }
         }
 
-        void DragTouch(int index, double time, Vector2 position, Vector2 relative)
+        void DragTouch(int index, double time, Vector2 position)
         {
             int touchIndex = _touchIndices[index];
-            _touches[touchIndex].Update(time, position, relative);
+            _touches[touchIndex].Update(time, position);
         }
 
     }

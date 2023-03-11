@@ -36,7 +36,7 @@ namespace NiceTouch.GestureGeneration
 #if ERROR_CHECK_NICE_TOUCH
                 if (!success)
                 {
-                    GDLogger.Error(this, $"Tried to remove a touch this {nameof(GestureCalculator)} didn't have! {touch}");
+                    GDLogger.Error(this, $"Tried to remove touch {touch.Index.ToString()} this {nameof(GestureCalculator)} didn't have! {touch}");
                     return;
                 }
 #endif
@@ -86,7 +86,7 @@ namespace NiceTouch.GestureGeneration
                 if (!isLongPress) return false;
 
                 _multiLongPressCandidates.Add(touch);
-                RemoveTouch(touch, false);
+              //  RemoveTouch(touch, false);
                 if (_processingMultiLongPress)
                 {
                     return true;
