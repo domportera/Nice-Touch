@@ -1,6 +1,10 @@
+#define ERROR_CHECK_NICE_TOUCH
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading.Tasks;
 using Godot;
+using GodotExtensions;
+using NiceTouch.GestureGeneration;
 using NiceTouch.GestureReceiving;
 
 namespace NiceTouch
@@ -30,10 +34,18 @@ namespace NiceTouch
 
             IGestureInterpreter interpreter = args.Interpreter;
 
-            HashSet<IGestureInterpreter> claimers = _claimedTouches[touch];
+            bool hasKey = _claimedTouches.TryGetValue(touch, out HashSet<IGestureInterpreter> claimers);
+
+            if (!hasKey)
+            {
+                #if ERROR_CHECK_NICE_TOUCH
+                GDLogger.Log(this, $"Touch was removed before it was accepted. Ignoring");
+                #endif
+                return;
+            }
 
             bool hasInterpreterTouchCollection =
-                _touchesClaimedByInterpreters.TryGetValue(interpreter, out var interpreterTouchCollection);
+                _touchesClaimedByInterpreters.TryGetValue(interpreter, out HashSet<Touch> interpreterTouchCollection);
 
             if (!hasInterpreterTouchCollection)
             {
@@ -46,15 +58,22 @@ namespace NiceTouch
             args.Interpreter.OnTouchBegin(thisEvent.Touch);
         }
 
-        void EndSingleTouch(Touch touch)
+        async void EndSingleTouch(Touch touch)
         {
             HashSet<IGestureInterpreter> claimers = _claimedTouches[touch];
             foreach (IGestureInterpreter interpreter in claimers)
             {
                 interpreter.OnTouchEnd(touch);
-                _touchesClaimedByInterpreters[interpreter].Remove(touch);
             }
 
+            // give ample time for the touch to be processed as a gesture before removing
+            await Task.Delay(GestureSettings.LiftTimeMs * 10);
+            
+            foreach (IGestureInterpreter interpreter in claimers)
+            {
+                _touchesClaimedByInterpreters[interpreter].Remove(touch);
+            }
+            
             claimers.Clear();
             _claimedTouches.Remove(touch);
             _recycledInterpreterCollections.Push(claimers);
@@ -65,25 +84,23 @@ namespace NiceTouch
         /// Outputs lists of <see cref="IGestureInterpreter"/>s that can make use of the full gesture and can make use
         /// of part of it
         /// </summary>
-        /// <param name="twisters"></param>
-        /// <param name="partialRecievers"></param>
-        /// <typeparam name="T"></typeparam>
-        void FilterTouches<T>(ref T gesture, out List<IGestureInterpreter> twisters, out List<InterpreterWithTouches> partialRecievers) where T : IMultiFingerGesture
+        void FilterTouches<T>(ref T gesture, out List<IGestureInterpreter> fullReceivers, out List<InterpreterWithTouches> partialRecievers) where T : IMultiFingerGesture
         {
-            partialRecievers = DistributeMultiTouch(ref gesture);
-            twisters = FilterUsersWithTouches(ref partialRecievers, gesture.TouchCount);
+            partialRecievers = GetInterpretersContainingTouchesInGesture(ref gesture);
+            fullReceivers = FilterUsersWithTouches(ref partialRecievers, gesture.TouchCount);
         }
 
         /// <summary>
         /// Returns a list of <see cref="InterpreterWithTouches"/> - the <see cref="IGestureInterpreter"/>s that own a touch
         /// contained in the provided gesture
         /// </summary>
-        List<InterpreterWithTouches> DistributeMultiTouch<T>(ref T gesture) where T : IMultiFingerGesture // todo: `in` keyword in c# 7
+        List<InterpreterWithTouches> GetInterpretersContainingTouchesInGesture<T>(ref T gesture) where T : IMultiFingerGesture // todo: `in` keyword in c# 7
         {
-            List<InterpreterWithTouches> usersWithTouches = new List<InterpreterWithTouches>(); // todo: cache this list
-            List<Touch> touchesTheyOwn = new List<Touch>();
+            // todo: caching 
+            List<InterpreterWithTouches> usersWithTouches = new List<InterpreterWithTouches>(); 
             foreach (KeyValuePair<IGestureInterpreter, HashSet<Touch>> interpreterWithTouches in _touchesClaimedByInterpreters)
             {
+                List<Touch> touchesTheyOwn = new List<Touch>();
                 IGestureInterpreter interpreter = interpreterWithTouches.Key;
                 HashSet<Touch> touches = interpreterWithTouches.Value;
 
@@ -97,13 +114,12 @@ namespace NiceTouch
                     continue;
 
                 usersWithTouches.Add(new InterpreterWithTouches(interpreter, touchesTheyOwn));
-                touchesTheyOwn.Clear();
             }
 
             return usersWithTouches;
         }
 
-        List<IGestureInterpreter> _fullGestureReceivers = new List<IGestureInterpreter>();
+        readonly List<IGestureInterpreter> _fullGestureReceivers = new List<IGestureInterpreter>();
         
         /// <summary>
         /// Returns a list of <see cref="IGestureInterpreter"/> that should receive the entire gesture.
@@ -131,27 +147,6 @@ namespace NiceTouch
             return _fullGestureReceivers;
         }
 
-        static void HandlePartialDragGestures(List<InterpreterWithTouches> partialReceivers)
-        {
-            foreach (InterpreterWithTouches ut in partialReceivers)
-            {
-                if (ut.JustOneTouch)
-                {
-                    var touch = ut.Touches[0];
-                    if (touch.IsDragging)
-                        // drag
-                        ut.Interpreter.OnSingleDrag(touch);
-                    //else
-                        //do nothing - i havent moved since last time?
-                        //ut.Interpreter.OnSingleDrag(touch);
-
-                    continue;
-                }
-
-                //interpret new gestures out of these htings... oh boy
-            }
-        }
-        
 
         struct InterpreterWithTouches //todo: cache these lists?
         {
