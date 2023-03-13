@@ -27,7 +27,6 @@ namespace NiceTouch
         readonly Dictionary<int, int> _touchIndices = new Dictionary<int, int>();
         readonly HashSet<int> _mouseButtonsPressed = new HashSet<int>();
 
-
         public override void _Ready()
         {
             _ = new GestureGenerator(this, new NiceTouchForwarder());
@@ -85,7 +84,7 @@ namespace NiceTouch
                 AddTouch(touch.Index, Time, touch.Position);
                 return;
             }
-            
+
             RemoveTouch(touch.Index, Time, touch.Position);
         }
 
@@ -103,8 +102,15 @@ namespace NiceTouch
 
         void HandleMouseButtonEvent(InputEventMouseButton mouse)
         {
+            
             if (!_allowMouse) return;
+            
             if(_acceptMouse) AcceptEvent();
+            
+            // we don't need double clicks and can compute this elsewhere - this gets called on android with touch (??) and causes problems
+            if (mouse.Doubleclick)
+                return;
+            
             int buttonIndex = MouseToTouchIndex(mouse.ButtonIndex);
             if (mouse.Pressed)
             {
@@ -120,20 +126,13 @@ namespace NiceTouch
 
         static int MouseToTouchIndex(int mouseButton)
         {
-            return int.MinValue + mouseButton;
+            return (mouseButton * -1) - 1;
         }
 
-        static bool IsMouseButton(int indez) => indez < 0;
+        static bool IsMouseButton(int index) => index < 0;
 
         void AddTouch(int index, double time, Vector2 position)
         {
-            #if ERROR_CHECK_NICE_TOUCH
-            if (_touchIndices.ContainsKey(index))
-            {
-                throw new Exception($"Touch {index} was added when we already had that index");
-            }
-            #endif
-
             int touchIndex = _incrementingTouchIndex++;
             _touchIndices[index] = touchIndex;
             Touch touch = new Touch(time, touchIndex, position);
@@ -150,28 +149,6 @@ namespace NiceTouch
             removedTouch.Update(time, position);
             _touches.Remove(touchIndex);
             TouchRemoved.Invoke(this, removedTouch);
-
-            if (IsMouseButton(index))
-                return;
-            
-            // decrement other touch indexes
-            // may need to do a finger width proximity calculation
-            // for touch persistence but im gonna prwtend i domt have to
-            var toShift = new List<int>();
-            foreach (KeyValuePair<int, int> kvp in _touchIndices)
-            {
-                if (kvp.Key > index)
-                    toShift.Add(kvp.Key);
-            }
-
-            toShift.Sort();
-            foreach (int i in toShift)
-            {
-                int adjusted = i - 1;
-                int indexToMove = _touchIndices[i];
-                _touchIndices.Remove(i);
-                _touchIndices[adjusted] = indexToMove;
-            }
         }
 
         void DragTouch(int index, double time, Vector2 position)
@@ -179,6 +156,5 @@ namespace NiceTouch
             int touchIndex = _touchIndices[index];
             _touches[touchIndex].Update(time, position);
         }
-
     }
 }
