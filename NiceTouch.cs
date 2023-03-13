@@ -29,6 +29,11 @@ namespace NiceTouch
         readonly Dictionary<int, int> _touchIndices = new Dictionary<int, int>();
         readonly HashSet<int> _mouseButtonsPressed = new HashSet<int>();
 
+        const int MouseButtonMask = (int)ButtonList.MaskLeft | (int)ButtonList.MaskRight | (int)ButtonList.MaskMiddle |
+                                     (int)ButtonList.MaskXbutton1 | (int)ButtonList.MaskXbutton2;
+
+        bool _lastRemovedWasTouch; // hacky bool needed to reign in a godot bug (or feature?)
+
         public override void _Ready()
         {
             _ = new GestureGenerator(this, new NiceTouchForwarder());
@@ -88,6 +93,7 @@ namespace NiceTouch
             }
 
             RemoveTouch(touch.Index, Time, touch.Position);
+            _lastRemovedWasTouch = true;
         }
 
         void HandleMouseMotionEvent(InputEventMouseMotion mouse)
@@ -104,15 +110,17 @@ namespace NiceTouch
 
         void HandleMouseButtonEvent(InputEventMouseButton mouse)
         {
+            if ((MouseButtonMask & mouse.ButtonIndex) == 0)
+                return;
             
             if (!_allowMouse) return;
             
             if(_acceptMouse) AcceptEvent();
-            
-            // we don't need double clicks and can compute this elsewhere - this gets called on android with touch (??) and causes problems
-            if (mouse.Doubleclick)
+
+            // workaround for godot sending a redundant double-click event on double-taps
+            if (mouse.Doubleclick && _lastRemovedWasTouch)
                 return;
-            
+
             int buttonIndex = MouseToTouchIndex(mouse.ButtonIndex);
             if (mouse.Pressed)
             {
@@ -123,6 +131,7 @@ namespace NiceTouch
             {
                 _mouseButtonsPressed.Remove(mouse.ButtonIndex);
                 RemoveTouch(buttonIndex, Time, mouse.Position);
+                _lastRemovedWasTouch = false;
             }
         }
 
@@ -135,6 +144,7 @@ namespace NiceTouch
 
         void AddTouch(int index, double time, Vector2 position)
         {
+
             int touchIndex = _incrementingTouchIndex++;
             _touchIndices[index] = touchIndex;
             Touch touch = new Touch(time, touchIndex, position);
@@ -151,6 +161,7 @@ namespace NiceTouch
             
             // if a touch is removed before any receiving nodes receive it through the main input loop, they won't
             // get the touch released event. this ensures that there's at least one frame granted.
+            // this may cause problems in the efficient rendering mode.... ¯\_(ツ)_/¯ 
              while (Engine.GetIdleFrames() == removedTouch.FrameCreated)
              {
                  await Task.Delay(10);
