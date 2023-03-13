@@ -1,7 +1,9 @@
 #define ERROR_CHECK_NICE_TOUCH
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Godot;
+using GodotExtensions;
 using NiceTouch.GestureGeneration;
 
 namespace NiceTouch
@@ -140,12 +142,22 @@ namespace NiceTouch
             TouchAdded.Invoke(this, touch);
         }
 
-        void RemoveTouch(int index, double time, Vector2 position)
+        async void RemoveTouch(int index, double time, Vector2 position)
         {
             int touchIndex = _touchIndices[index];
             _touchIndices.Remove(index);
             
             Touch removedTouch = _touches[touchIndex];
+            
+            // if a touch is removed before any receiving nodes receive it through the main input loop, they won't
+            // get the touch released event. this ensures that there's at least one frame granted.
+             while (Engine.GetIdleFrames() == removedTouch.FrameCreated)
+             {
+                 await Task.Delay(10);
+                 // for some reason, godot on android freezes with Yield
+                 //await Task.Yield();
+             }
+                
             removedTouch.Update(time, position);
             _touches.Remove(touchIndex);
             TouchRemoved.Invoke(this, removedTouch);

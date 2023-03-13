@@ -33,6 +33,7 @@ namespace NiceTouch
             StartPosition = position;
             Index = index;
             StartTime = time;
+            FrameCreated = Engine.GetIdleFrames(); //Godot 4.0+ - GetProcessFrames()
         }
         
         readonly Queue<TouchPositionData> _history = new Queue<TouchPositionData>();
@@ -45,7 +46,7 @@ namespace NiceTouch
         public double LastUpdateTime => Current.Time;
         public double TimeAlive => LastUpdateTime - StartTime;
         public double StartTime { get; }
-
+        public ulong FrameCreated { get; }
         public bool IsDragging => IsMoving && HasDragged;
         public bool HasDragged => TotalDistanceTraveledMm > TouchSettings.DragDistanceThresholdMm;
         bool IsMoving => SpeedMm > TouchSettings.MoveSpeedThresholdMm;
