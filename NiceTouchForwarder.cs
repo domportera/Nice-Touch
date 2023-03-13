@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using NiceTouch.GestureReceiving;
 
 namespace NiceTouch
@@ -21,6 +22,7 @@ namespace NiceTouch
             new Stack<HashSet<IGestureInterpreter>>();
 
         readonly Stack<HashSet<Touch>> _recycledTouchCollections = new Stack<HashSet<Touch>>();
+        InterpreterWithGestureTouchesPool _interpreterWithGestureTouchesPool = new InterpreterWithGestureTouchesPool();
         
         public void OnSingleTouch(object sender, TouchData touchData)
         {
@@ -32,7 +34,6 @@ namespace NiceTouch
             }
             else
             {
-                // todo: delay endsingletouch if it's in use by a multi-gesture?
                 EndSingleTouch(touch);
             }
         }
@@ -70,12 +71,12 @@ namespace NiceTouch
         {
             FilterTouches(ref gesture, 
                 out List<IGestureInterpreter> fullReceivers, 
-                out List<InterpreterWithTouches> partialReceivers);
+                out List<InterpreterWithGestureTouches> partialReceivers);
             
             foreach (IGestureInterpreter g in fullReceivers)
                 g.OnTwist(gesture);
 
-            foreach (InterpreterWithTouches receiver in partialReceivers)
+            foreach (InterpreterWithGestureTouches receiver in partialReceivers)
             {
                 Debug.Assert(receiver.JustOneTouch); //twists only have two touches so this must be one
                 Touch touch = receiver.Touches[0];
@@ -88,12 +89,12 @@ namespace NiceTouch
         { 
             FilterTouches(ref gesture, 
                 out List<IGestureInterpreter> fullReceivers, 
-                out List<InterpreterWithTouches> partialReceivers);
+                out List<InterpreterWithGestureTouches> partialReceivers);
             
             foreach (IGestureInterpreter g in fullReceivers)
                 g.OnPinch(gesture);
 
-            foreach (InterpreterWithTouches receiver in partialReceivers)
+            foreach (InterpreterWithGestureTouches receiver in partialReceivers)
             {
                 Debug.Assert(receiver.JustOneTouch); //pinches only have two touches so this must be one
                 Touch touch = receiver.Touches[0];
@@ -107,12 +108,12 @@ namespace NiceTouch
         {
             FilterTouches(ref gesture, 
                 out List<IGestureInterpreter> fullReceivers, 
-                out List<InterpreterWithTouches> partialReceivers);
+                out List<InterpreterWithGestureTouches> partialReceivers);
             
             foreach (IGestureInterpreter g in fullReceivers)
                 g.OnMultiDrag(gesture);
 
-            foreach (InterpreterWithTouches receiver in partialReceivers)
+            foreach (InterpreterWithGestureTouches receiver in partialReceivers)
             {
                 if (receiver.JustOneTouch)
                 {
@@ -120,7 +121,7 @@ namespace NiceTouch
                     continue;
                 }
 
-                var multiGesture = new MultiDragData(receiver.Touches);
+                var multiGesture = new MultiDragData(receiver.TouchListCopy); 
                 receiver.Interpreter.OnMultiDrag(multiGesture);
             }
         }
@@ -129,12 +130,12 @@ namespace NiceTouch
         {
             FilterTouches(ref gesture, 
                 out List<IGestureInterpreter> fullReceivers, 
-                out List<InterpreterWithTouches> partialReceivers);
+                out List<InterpreterWithGestureTouches> partialReceivers);
             
             foreach (IGestureInterpreter g in fullReceivers)
                 g.OnMultiLongPress(gesture);
 
-            foreach (InterpreterWithTouches receiver in partialReceivers)
+            foreach (InterpreterWithGestureTouches receiver in partialReceivers)
             {
                 if (receiver.JustOneTouch)
                 {
@@ -142,7 +143,7 @@ namespace NiceTouch
                     continue;
                 }
 
-                var multiGesture = new MultiLongPressData(receiver.Touches);
+                var multiGesture = new MultiLongPressData(receiver.TouchListCopy);
                 receiver.Interpreter.OnMultiLongPress(multiGesture);
             }
         }
@@ -151,12 +152,12 @@ namespace NiceTouch
         {
             FilterTouches(ref gesture, 
                 out List<IGestureInterpreter> fullReceivers, 
-                out List<InterpreterWithTouches> partialReceivers);
+                out List<InterpreterWithGestureTouches> partialReceivers);
             
             foreach (IGestureInterpreter g in fullReceivers)
                 g.OnMultiSwipe(gesture);
 
-            foreach (InterpreterWithTouches receiver in partialReceivers)
+            foreach (InterpreterWithGestureTouches receiver in partialReceivers)
             {
                 if (receiver.JustOneTouch)
                 {
@@ -164,7 +165,7 @@ namespace NiceTouch
                     continue;
                 }
 
-                var multiGesture = new MultiSwipeData(receiver.Touches);
+                var multiGesture = new MultiSwipeData(receiver.TouchListCopy);
                 receiver.Interpreter.OnMultiSwipe(multiGesture);
             }
         }
@@ -173,12 +174,12 @@ namespace NiceTouch
         {
             FilterTouches(ref gesture, 
                 out List<IGestureInterpreter> fullReceivers, 
-                out List<InterpreterWithTouches> partialReceivers);
+                out List<InterpreterWithGestureTouches> partialReceivers);
 
             foreach (IGestureInterpreter g in fullReceivers)
                 g.OnMultiTap(gesture);
 
-            foreach (InterpreterWithTouches receiver in partialReceivers)
+            foreach (InterpreterWithGestureTouches receiver in partialReceivers)
             {
                 if (receiver.JustOneTouch)
                 {
@@ -186,7 +187,7 @@ namespace NiceTouch
                     continue;
                 }
 
-                var multiGesture = new MultiTapData(receiver.Touches);
+                var multiGesture = new MultiTapData(receiver.TouchListCopy);
                 receiver.Interpreter.OnMultiTap(multiGesture);
             }
         }

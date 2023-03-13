@@ -144,7 +144,6 @@ namespace NiceTouch
 
         void AddTouch(int index, double time, Vector2 position)
         {
-
             int touchIndex = _incrementingTouchIndex++;
             _touchIndices[index] = touchIndex;
             Touch touch = new Touch(time, touchIndex, position);

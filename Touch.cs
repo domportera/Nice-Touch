@@ -20,11 +20,6 @@ namespace NiceTouch
     {
         const double DragHistoryDuration = 0.3;
 
-        public Touch()
-        {
-            throw new NotImplementedException();
-        }
-        
         internal Touch(double time, int index, Vector2 position)
         {
             _dpi = OS.GetScreenDpi();
@@ -95,7 +90,7 @@ namespace NiceTouch
             return $"({nameof(Touch)}): {Current.ToString()}";
         }
 
-        // todo: speeds will not be updated as this Update function currently wont be called when touch is still
+        
         internal void Update(double time, Vector2 position)
         {
             var positionData = new TouchPositionData(time, LastUpdateTime, position, position - Current.Position, _dpi);

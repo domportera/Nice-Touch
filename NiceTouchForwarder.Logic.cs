@@ -1,6 +1,7 @@
 #define ERROR_CHECK_NICE_TOUCH
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading.Tasks;
 using Godot;
 using GodotExtensions;
@@ -67,7 +68,9 @@ namespace NiceTouch
             }
 
             // give ample time for the touch to be processed as a gesture before removing
-            await Task.Delay(GestureSettings.LiftTimeMs * 10);
+            // todo : can we reference its gesture calculator to see if it's in consideration instead of just waiting
+            // for everything?
+            await Task.Delay(GestureSettings.LiftTimeMs * 3);
             
             foreach (IGestureInterpreter interpreter in claimers)
             {
@@ -84,42 +87,41 @@ namespace NiceTouch
         /// Outputs lists of <see cref="IGestureInterpreter"/>s that can make use of the full gesture and can make use
         /// of part of it
         /// </summary>
-        void FilterTouches<T>(ref T gesture, out List<IGestureInterpreter> fullReceivers, out List<InterpreterWithTouches> partialRecievers) where T : IMultiFingerGesture
+        void FilterTouches<T>(ref T gesture, out List<IGestureInterpreter> fullReceivers, out List<InterpreterWithGestureTouches> partialReceivers) where T : IMultiFingerGesture
         {
-            partialRecievers = GetInterpretersContainingTouchesInGesture(ref gesture);
-            fullReceivers = FilterUsersWithTouches(ref partialRecievers, gesture.TouchCount);
+            partialReceivers = GetInterpretersContainingTouchesInGesture(ref gesture);
+            fullReceivers = FilterUsersWithTouches(ref partialReceivers, gesture.TouchCount);
         }
 
         /// <summary>
-        /// Returns a list of <see cref="InterpreterWithTouches"/> - the <see cref="IGestureInterpreter"/>s that own a touch
-        /// contained in the provided gesture
-        /// </summary>
-        List<InterpreterWithTouches> GetInterpretersContainingTouchesInGesture<T>(ref T gesture) where T : IMultiFingerGesture // todo: `in` keyword in c# 7
+        /// Returns a list of <see cref="InterpreterWithGestureTouches"/> - the <see cref="IGestureInterpreter"/>s
+        /// that own a touch contained in the provided gesture
+        /// </summary> // todo: `in` keyword in c# 7
+        List<InterpreterWithGestureTouches> GetInterpretersContainingTouchesInGesture<T>(ref T gesture) where T : IMultiFingerGesture
         {
-            // todo: caching 
-            List<InterpreterWithTouches> usersWithTouches = new List<InterpreterWithTouches>(); 
-            foreach (KeyValuePair<IGestureInterpreter, HashSet<Touch>> interpreterWithTouches in _touchesClaimedByInterpreters)
+            _interpreterWithGestureTouchesPool.RefreshPool();
+            
+            foreach (KeyValuePair<IGestureInterpreter, HashSet<Touch>> interpreterTouchKvp in _touchesClaimedByInterpreters)
             {
-                List<Touch> touchesTheyOwn = new List<Touch>();
-                IGestureInterpreter interpreter = interpreterWithTouches.Key;
-                HashSet<Touch> touches = interpreterWithTouches.Value;
+                HashSet<Touch> touches = interpreterTouchKvp.Value;
+                InterpreterWithGestureTouches interpreterWithGestureTouches = 
+                    _interpreterWithGestureTouchesPool.New(interpreterTouchKvp.Key);
 
                 foreach (Touch touch in gesture.Touches)
                 {
                     if (touches.Contains(touch))
-                        touchesTheyOwn.Add(touch);
+                        interpreterWithGestureTouches.Touches.Add(touch);
                 }
 
-                if (touchesTheyOwn.Count == 0)
+                if (interpreterWithGestureTouches.Touches.Count == 0)
                     continue;
 
-                usersWithTouches.Add(new InterpreterWithTouches(interpreter, touchesTheyOwn));
+                _interpreterWithGestureTouchesPool.UsersWithTouches.Add(interpreterWithGestureTouches);
             }
 
-            return usersWithTouches;
+            return _interpreterWithGestureTouchesPool.UsersWithTouches;
         }
-
-        readonly List<IGestureInterpreter> _fullGestureReceivers = new List<IGestureInterpreter>();
+        
         
         /// <summary>
         /// Returns a list of <see cref="IGestureInterpreter"/> that should receive the entire gesture.
@@ -127,12 +129,12 @@ namespace NiceTouch
         /// <param name="distributed">All users that contain a touch in the gesture being considered.
         /// Passing by ref only to communicate the fact that this collection will be modified.</param>
         /// <param name="touchCount">The number of touches in the gesture being considered</param>
-        List<IGestureInterpreter> FilterUsersWithTouches(ref List<InterpreterWithTouches> distributed, int touchCount)
+        List<IGestureInterpreter> FilterUsersWithTouches(ref List<InterpreterWithGestureTouches> distributed, int touchCount)
         {
             _fullGestureReceivers.Clear();
             for(int i = 0; i < distributed.Count; i++)
             {
-                InterpreterWithTouches ut = distributed[i];
+                InterpreterWithGestureTouches ut = distributed[i];
                 Debug.Assert(ut.Touches.Count != 0);
                 
                 if (ut.Touches.Count != touchCount) continue;
@@ -146,19 +148,7 @@ namespace NiceTouch
 
             return _fullGestureReceivers;
         }
-
-
-        struct InterpreterWithTouches //todo: cache these lists?
-        {
-            public InterpreterWithTouches(IGestureInterpreter interpreter, List<Touch> touches)
-            {
-                Interpreter = interpreter;
-                Touches = touches;
-            }
-
-            public IGestureInterpreter Interpreter { get; }
-            public List<Touch> Touches { get; }
-            public bool JustOneTouch => Touches.Count == 1;
-        }
+        
+        readonly List<IGestureInterpreter> _fullGestureReceivers = new List<IGestureInterpreter>();
     }
 }
