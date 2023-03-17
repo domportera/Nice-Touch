@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using Godot;
 using GodotExtensions;
+using NiceTouch.GestureGeneration;
 using static NiceTouch.UnitConstants;
 using Environment = System.Environment;
 
@@ -30,7 +31,8 @@ namespace NiceTouch
             StartTime = time;
             FrameCreated = Engine.GetIdleFrames(); //Godot 4.0+ - GetProcessFrames()
         }
-        
+
+        GestureCalculator _gestureCalculator; 
         readonly Queue<TouchPositionData> _history = new Queue<TouchPositionData>();
         readonly float _dpi;
 
@@ -118,5 +120,16 @@ namespace NiceTouch
             Updated.Invoke(this, EventArgs.Empty);
 #endif
         }
+
+        internal void Claim(GestureCalculator gestureCalculator)
+        {
+            #if ERROR_CHECK_NICE_TOUCH
+            if (_gestureCalculator != null)
+                throw new Exception($"Touch {Index} already claimed");
+            #endif
+            _gestureCalculator = gestureCalculator;
+        }
+
+        internal bool InConsiderationForMultiGesture => _gestureCalculator != null && _gestureCalculator.IsConsideringForMultiTouch(this);
     }
 }

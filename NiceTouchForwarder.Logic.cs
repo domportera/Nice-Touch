@@ -68,9 +68,9 @@ namespace NiceTouch
             }
 
             // give ample time for the touch to be processed as a gesture before removing
-            // todo : can we reference its gesture calculator to see if it's in consideration instead of just waiting
-            // for everything?
-            await Task.Delay(GestureSettings.LiftTimeMs * 3);
+            // todo: is it worth just having this (or something else) be a raw touch event rather than being handled?
+            if(touch.InConsiderationForMultiGesture)
+                await Task.Delay((int)(GestureSettings.LiftTimeMs * 1.5));
             
             foreach (IGestureInterpreter interpreter in claimers)
             {
