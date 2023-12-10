@@ -23,7 +23,7 @@ namespace NiceTouch
             DistanceTraveled = relative.DistanceTo(Vector2.Zero);
             PositionDelta = relative;
             Speed = DistanceTraveled / (time - previousTime);
-            DirectionRadians = relative == Vector2.Zero ? float.NaN : (float) System.Math.Atan2(relative.y, relative.x);
+            DirectionRadians = relative == Vector2.Zero ? float.NaN : (float) System.Math.Atan2(relative.Y, relative.X);
         }
 
         readonly float _dpi;

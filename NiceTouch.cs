@@ -11,7 +11,7 @@ namespace NiceTouch
     /// <summary>
     /// A class that manages an infinite number of touches
     /// </summary>
-    internal class NiceTouch : Control
+    public partial class NiceTouch : Control
     {
         public event EventHandler<Touch> TouchAdded;
         public event EventHandler<Touch> TouchRemoved;
@@ -29,6 +29,7 @@ namespace NiceTouch
         readonly Dictionary<int, int> _touchIndices = new Dictionary<int, int>();
         readonly HashSet<int> _mouseButtonsPressed = new HashSet<int>();
 
+        // todo - ensure correctness with godot upgrade
         const int MouseButtonMask = (int)ButtonList.MaskLeft | (int)ButtonList.MaskRight | (int)ButtonList.MaskMiddle |
                                      (int)ButtonList.MaskXbutton1 | (int)ButtonList.MaskXbutton2;
 
@@ -57,7 +58,7 @@ namespace NiceTouch
                     break;
             }
             
-            AfterInput.Invoke(this, EventArgs.Empty);
+            AfterInput?.Invoke(this, EventArgs.Empty);
         }
 
         public override void _Process(float delta)
@@ -103,14 +104,15 @@ namespace NiceTouch
             double time = Time;
             foreach (int mouseButton in _mouseButtonsPressed)
             {
-                int index = MouseToTouchIndex(mouseButton);
+                int index = mouseButton;
                 DragTouch(index, time, mouse.Position);
             }
         }
 
         void HandleMouseButtonEvent(InputEventMouseButton mouse)
         {
-            if ((MouseButtonMask & mouse.ButtonIndex) == 0)
+            int buttonIndex = MouseToTouchIndex(mouse.ButtonIndex);
+            if ((MouseButtonMask & buttonIndex) == 0)
                 return;
             
             if (!_allowMouse) return;
@@ -118,29 +120,24 @@ namespace NiceTouch
             if(_acceptMouse) AcceptEvent();
 
             // workaround for godot sending a redundant double-click event on double-taps
-            if (mouse.Doubleclick && _lastRemovedWasTouch)
+            if (mouse.DoubleClick && _lastRemovedWasTouch)
                 return;
 
-            int buttonIndex = MouseToTouchIndex(mouse.ButtonIndex);
             if (mouse.Pressed)
             {
-                _mouseButtonsPressed.Add(mouse.ButtonIndex);
+                _mouseButtonsPressed.Add(buttonIndex);
                 AddTouch(buttonIndex, Time, mouse.Position);
             }
             else
             {
-                _mouseButtonsPressed.Remove(mouse.ButtonIndex);
+                _mouseButtonsPressed.Remove(buttonIndex);
                 RemoveTouch(buttonIndex, Time, mouse.Position);
                 _lastRemovedWasTouch = false;
             }
         }
 
-        static int MouseToTouchIndex(int mouseButton)
-        {
-            return (mouseButton * -1) - 1;
-        }
-
-        static bool IsMouseButton(int index) => index < 0;
+        // todo - ensure correctness with godot upgrade
+        static int MouseToTouchIndex(MouseButton mouseButton) => (int)mouseButton;
 
         void AddTouch(int index, double time, Vector2 position)
         {

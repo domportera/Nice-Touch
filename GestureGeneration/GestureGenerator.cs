@@ -195,10 +195,10 @@ namespace NiceTouch.GestureGeneration
             {
                 // since we're using the center point, we only need to calculate the twist amount
                 // using one of the fingers, as their relative twist delta would be the same
-                float angle = Mathf.Atan2(firstPositionRelativeToCenter.y,
-                    firstPositionRelativeToCenter.x);
-                float previousAngle = Mathf.Atan2(firstPositionPreviousRelativeToCenter.y,
-                    firstPositionPreviousRelativeToCenter.x);
+                float angle = Mathf.Atan2(firstPositionRelativeToCenter.Y,
+                    firstPositionRelativeToCenter.X);
+                float previousAngle = Mathf.Atan2(firstPositionPreviousRelativeToCenter.Y,
+                    firstPositionPreviousRelativeToCenter.X);
 
                 float twistAngle = angle - previousAngle;
                 return twistAngle;

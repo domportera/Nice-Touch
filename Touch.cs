@@ -23,7 +23,7 @@ namespace NiceTouch
 
         internal Touch(double time, int index, Vector2 position)
         {
-            _dpi = OS.GetScreenDpi();
+            _dpi = DisplayServer.ScreenGetDpi();
             Current = new TouchPositionData(time, position, _dpi);
             _history.Enqueue(Current);
             StartPosition = position;
