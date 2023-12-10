@@ -1,8 +1,8 @@
-﻿using System;
+using System;
 using Godot;
 
 namespace NiceTouch.GestureReceiving{
-    public class GestureInterpreter : Node, IGestureInterpreter
+    public partial class GestureInterpreter : Node, IGestureInterpreter
     {
         [Export] bool _preventPropagation = false;
         [Export] GestureInputMode _inputMode = GestureInputMode.UnhandledInput;

@@ -2,7 +2,7 @@ using Godot;
 using static NiceTouch.UnitConstants;
 namespace NiceTouch
 {
-    public struct TouchPositionData //translation into c++ may require this to be a Godot.Reference
+    public struct TouchPositionData //translation into c++ may require this to be a Godot.RefCounted
     {
         public TouchPositionData(double time, Vector2 position, float dpi)
         {
@@ -31,7 +31,7 @@ namespace NiceTouch
         public Vector2 Position { get; }
         public Vector2 PositionDelta { get; }
         public float DirectionRadians { get; }
-        public float DirectionDegrees => Mathf.Rad2Deg(DirectionRadians);
+        public float DirectionDegrees => Mathf.RadToDeg(DirectionRadians);
         public float DistanceTraveled { get; }
         public double Speed { get; }
         

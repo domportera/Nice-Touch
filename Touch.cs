@@ -17,7 +17,7 @@ namespace NiceTouch
         public const float DragDistanceThresholdMm = 2f;
     }
     
-    public class Touch // Nice Touch ™
+    public partial class Touch // Nice Touch ™
     {
         const double DragHistoryDuration = 0.3;
 
@@ -29,7 +29,7 @@ namespace NiceTouch
             StartPosition = position;
             Index = index;
             StartTime = time;
-            FrameCreated = Engine.GetIdleFrames(); //Godot 4.0+ - GetProcessFrames()
+            FrameCreated = Engine.GetProcessFrames(); //Godot 4.0+ - GetProcessFrames()
         }
 
         GestureCalculator _gestureCalculator; 

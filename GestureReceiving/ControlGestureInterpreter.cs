@@ -3,7 +3,7 @@ using System;
 
 namespace NiceTouch.GestureReceiving
 {
-	public class ControlGestureInterpreter : Control, IGestureInterpreter
+	public partial class ControlGestureInterpreter : Control, IGestureInterpreter
 	{
 		public event EventHandler<Touch> TouchBegin;
 		public event EventHandler<Touch> TouchEnd;
@@ -44,11 +44,11 @@ namespace NiceTouch.GestureReceiving
 			AnchorRight = 1;
 			AnchorTop = 0;
 			AnchorBottom = 1;
-			this.RectPosition = Vector2.Zero;
+			this.Position = Vector2.Zero;
 			
 			// take their tooltip too
-			HintTooltip = control.HintTooltip;
-			control.HintTooltip = string.Empty;
+			TooltipText = control.TooltipText;
+			control.TooltipText = string.Empty;
 			
 			
 			_controlIsThis = control == this; //always false?

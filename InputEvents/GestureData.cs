@@ -38,7 +38,7 @@ namespace NiceTouch
         public Touch Touch2 { get; }
         public float SeparationAmount { get; }
         public float TwistRadians { get; }
-        public float TwistDegrees => Mathf.Rad2Deg(TwistRadians);
+        public float TwistDegrees => Mathf.RadToDeg(TwistRadians);
         public DragRelationshipType Relationship { get; }
 
         public Vector2 Centroid { get; }

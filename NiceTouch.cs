@@ -161,7 +161,7 @@ namespace NiceTouch
             // if a touch is removed before any receiving nodes receive it through the main input loop, they won't
             // get the touch released event. this ensures that there's at least one frame granted.
             // this may cause problems in the efficient rendering mode.... ¯\_(ツ)_/¯ 
-             while (Engine.GetIdleFrames() == removedTouch.FrameCreated)
+             while (Engine.GetProcessFrames() == removedTouch.FrameCreated)
              {
                  await Task.Delay(10);
                  // for some reason, godot on android freezes with Yield
