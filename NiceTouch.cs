@@ -30,8 +30,8 @@ namespace NiceTouch
         readonly HashSet<int> _mouseButtonsPressed = new HashSet<int>();
 
         // todo - ensure correctness with godot upgrade
-        const int MouseButtonMask = (int)ButtonList.MaskLeft | (int)ButtonList.MaskRight | (int)ButtonList.MaskMiddle |
-                                     (int)ButtonList.MaskXbutton1 | (int)ButtonList.MaskXbutton2;
+        private const int _mouseButtonMask = (int)MouseButtonMask.Left| (int) MouseButtonMask.Right | (int)MouseButtonMask.Middle |
+                                            (int)MouseButtonMask.MbXbutton1 | (int)MouseButtonMask.MbXbutton2;
 
         bool _lastRemovedWasTouch; // hacky bool needed to reign in a godot bug (or feature?)
 
@@ -61,7 +61,7 @@ namespace NiceTouch
             AfterInput?.Invoke(this, EventArgs.Empty);
         }
 
-        public override void _Process(float delta)
+        public override void _Process(double delta)
         {
             double time = Time;
             foreach (KeyValuePair<int, Touch> touchEntry in _touches)
@@ -112,7 +112,7 @@ namespace NiceTouch
         void HandleMouseButtonEvent(InputEventMouseButton mouse)
         {
             int buttonIndex = MouseToTouchIndex(mouse.ButtonIndex);
-            if ((MouseButtonMask & buttonIndex) == 0)
+            if ((_mouseButtonMask & buttonIndex) == 0)
                 return;
             
             if (!_allowMouse) return;
